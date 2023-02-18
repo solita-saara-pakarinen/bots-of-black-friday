@@ -4,7 +4,7 @@ import { RegisterResponse } from "./types/RegisterResponse";
 import { Move } from "./types/Move";
 
 const LOCAL_URL = "http://localhost:8080";
-let PROD_URL = "";
+let PROD_URL = "http://localhost:8080";
 
 const getUrl = (): string => {
   if (process.env.NODE_ENV === "development") {
