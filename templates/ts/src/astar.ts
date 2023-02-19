@@ -17,18 +17,21 @@ export type PathNode = {
   blocked: boolean;
 };
 
-export function initGrid(tiles: string[]): PathNode[][] {
-  const grid: PathNode[][] = [];
-  for (let x = 0; x < tiles.length; x++) {
-    for (let y = 0; y < tiles[x].length; y++) {
-      const position = { x: x, y: y };
-      const parent = null;
-      const isBlocked = tiles[x][y] === "x";
-      grid[x][y] = createPathNode(position, parent, 0, 0, 0, isBlocked);
-    }
-  }
-  return grid;
-}
+// export function initGrid(tiles: string[]): PathNode[][] {
+//   const grid: PathNode[][] = [];
+//   let nodes: PathNode[] = [];
+//   for (let x = 0; x < tiles.length - 1; x++) {
+//     nodes = [];
+//     for (let y = 0; y < tiles[x].length - 1; y++) {
+//       const position = { x: x, y: y };
+//       const parent = null;
+//       const isBlocked = tiles[x][y] === "x";
+//       nodes.push(createPathNode(position, parent, 0, 0, 0, isBlocked));
+//     }
+//     grid.push(nodes);
+//   }
+//   return grid;
+// }
 
 function createPathNode(
   position: Position,
@@ -79,26 +82,62 @@ const getNeighbors = (PathNode: PathNode, grid: PathNode[][]): PathNode[] => {
   return neighbors;
 };
 
+const addNeighbours = (
+  currentPathNode: PathNode,
+  end: Position,
+  neighbors: PathNode[],
+  closedList: PathNode[],
+  openList: PathNode[]
+) => {
+  for (let i = 0; i < neighbors.length; i++) {
+    const neighbor = neighbors[i];
+
+    if (closedList.includes(neighbor)) {
+      continue;
+    }
+
+    const tentativeGScore =
+      currentPathNode.g + getDistance(currentPathNode, neighbor);
+
+    if (!openList.includes(neighbor)) {
+      openList.push(neighbor);
+    } else if (tentativeGScore >= neighbor.g) {
+      continue;
+    }
+
+    neighbor.parent = currentPathNode;
+    neighbor.g = tentativeGScore;
+    neighbor.h = getDistance(neighbor, createPathNode(end, null));
+    neighbor.f = neighbor.g + neighbor.h;
+  }
+
+  return { closedList, openList };
+};
+
 export function aStar(
   start: Position,
   end: Position,
   grid: PathNode[][]
 ): PathNode[] | null {
+  // console.log("start", start);
+  // console.log("end", end);
+
   const openList: PathNode[] = [createPathNode(start, null)];
   const closedList: PathNode[] = [];
 
+  // console.log("start open list", openList);
+  // console.log("closed list", closedList);
   while (openList.length > 0) {
     let currentPathNode: PathNode | undefined = openList[0];
 
+    // find lowest f 
     for (let i = 1; i < openList.length; i++) {
       if (openList[i].f < currentPathNode.f) {
         currentPathNode = openList[i];
       }
     }
 
-    if (!currentPathNode) {
-      return null;
-    }
+    if (!currentPathNode) return null;
 
     if (currentPathNode === end) {
       const path: PathNode[] = [];
@@ -108,19 +147,36 @@ export function aStar(
         path.push(current);
         current = current.parent;
       }
-
       return path.reverse();
     }
 
     openList.splice(openList.indexOf(currentPathNode), 1);
     closedList.push(currentPathNode);
 
-    const neighbors: PathNode[] = getNeighbors(currentPathNode, grid);
+    const neighbors: PathNode[] = [];
+    const { x, y } = currentPathNode;
 
+    // left { x: prevX-1, y: y }
+    const left = grid[x - 1][y];
+     // right { x: prevX+1, y: y }
+    const right = grid[x + 1][y];
+    // up { x: x, y: y-1 }
+    const up = grid[x][y - 1];
+    // down { x: x, y: y+1 }
+    const down = grid[x][y + 1];
+
+    if (left.blocked == false) neighbors.push(left);
+    if (right.blocked == false) neighbors.push(right);
+    if (up.blocked == false) neighbors.push(up);
+    if (down.blocked == false) neighbors.push(down);
+
+    
+    console.log("add neighbours", neighbors);
     for (let i = 0; i < neighbors.length; i++) {
       const neighbor = neighbors[i];
 
       if (closedList.includes(neighbor)) {
+        // break + next iteration
         continue;
       }
 
